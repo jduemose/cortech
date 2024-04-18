@@ -5,6 +5,7 @@ import nibabel as nib
 import numpy as np
 import numpy.typing as npt
 import scipy.sparse
+from scipy.ndimage import map_coordinates
 
 import cortech.utils
 
@@ -13,10 +14,12 @@ from cortech.constants import Curvature
 
 class Surface:
     def __init__(
-        self, vertices: npt.NDArray, faces: npt.NDArray, initialize=True
+        self, vertices: npt.NDArray, faces: npt.NDArray, metadata, initialize=True
     ) -> None:
         self.vertices = vertices
         self.faces = faces
+        self.metadata = metadata
+
         if initialize:
             self.vertex_adjacency = self.compute_vertex_adjacency()
 
@@ -248,8 +251,9 @@ class Surface:
 
     # def smooth(self, data):
 
-
-    def iterative_spatial_smoothing(self, data: npt.NDArray, niter: int, A=None, nn=None):
+    def iterative_spatial_smoothing(
+        self, data: npt.NDArray, niter: int, A=None, nn=None
+    ):
         """Perform iterative spatial smoothing of `data` on the mesh defined by
         the adjacency matrix `A`.
 
@@ -281,6 +285,73 @@ class Surface:
             return data
         else:
             raise ValueError("`navgs` should be >= 0")
+
+    def apply_affine(self, affine: npt.NDArray, move: bool = True) -> npt.NDArray:
+        """Apply an affine to an array of points.
+
+        Parameters
+        ----------
+        affine : npt.NDArray
+            A 4x4 array defining the vox2world transformation.
+        move : bool
+            If True (default), apply translation.
+
+        Returns
+        -------
+        out_coords : shape = (3,) | (n,
+            Transformed point(s).
+        """
+
+        # apply rotation & scale
+        out_coords = np.dot(self.vertices, affine[:3, :3].T)
+        # apply translation
+        if move:
+            out_coords += affine[:3, 3]
+
+        return out_coords
+
+    def interpolate_to_nodes(
+        self, vol: npt.NDArray, affine: npt.NDArray, order: int = 3
+    ) -> npt.NDArray:
+        """Interpolate values from a volume to surface node positions.
+
+        Parameters
+        ----------
+        vol : npt.NDArray
+            A volume array as read by e.g., nib.load(image).get_fdata()
+        affine: npt.NDArray
+            A 4x4 array storing the vox2world transformation of the image
+        order: int
+            Interpolation order (0-5)
+
+        Returns
+        -------
+        values_at_coords: npt.NDArray
+                        An Nx1 array of intensity values at each node
+
+        """
+
+        # Map node coordinates to volume
+        inv_affine = np.linalg.inv(affine)
+        # NOTE: I'm not sure if we should always work in scanner
+        # RAS or not, but here I'm assuming the vertices in the
+        # object are in surface RAS
+        vox_coords = self.apply_affine(
+            inv_affine, self.vertices + self.metadata["cras"]
+        )
+
+        # Deal with edges ala simnibs
+        im_shape = vol.shape
+        for i, s in enumerate(im_shape):
+            vox_coords[(vox_coords[:, i] > -0.5) * (vox_coords[:, i] < 0), i] = 0.0
+            vox_coords[(vox_coords[:, i] > s - 1) * (vox_coords[:, i] < s - 0.5), i] = (
+                s - 1
+            )
+
+        # Keeping the map_coordinates options exposed in case we want to change these
+        return map_coordinates(
+            vol, vox_coords.T, order=order, mode="constant", cval=0.0, prefilter=True
+        )
 
     @classmethod
     def from_freesurfer_subject_dir(cls, subject_dir, surface, read_metadata=True):
