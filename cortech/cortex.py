@@ -2,9 +2,9 @@ import numpy as np
 import numpy.typing as npt
 
 import cortech.utils
-from cortech.surface import Surface
-
+from cortech.surface import Surface, SphericalRegistration
 from cortech.constants import Curvature
+
 
 class Hemisphere:
     """A class containing surfaces delineating the white-gray matter boundary
@@ -12,45 +12,20 @@ class Hemisphere:
 
     Additionally, it may contain information about layers...
     """
+
     def __init__(
         self,
         white: Surface,
         pial: Surface,
-        # thickness: None | npt.NDArray = None,
-        # curvature: None | npt.NDArray = None,
+        spherical_registration: None | SphericalRegistration = None,
     ) -> None:
 
         self.white = white
         self.pial = pial
+        self.spherical_registration = spherical_registration
 
-        self.compute_thickness()
-        self.compute_average_curvature()
-
-    @classmethod
-    def from_freesurfer_subject_dir(
-        cls, sub_dir, hemi, white="white", pial="pial", thickness="thickness", curv="avg_curv"
-    ):
-        assert hemi in {"lh", "rh"}
-
-        white = Surface.from_freesurfer_subject_dir(sub_dir, f"{hemi}.{white}")
-        pial = Surface.from_freesurfer_subject_dir(sub_dir, f"{hemi}.{pial}")
-
-        # if thickness:
-        #     thickness = nib.freesurfer.read_morph_data(surf_dir / f"{hemi}.{thickness}")
-        # if curv:
-        #     curv = {h: 0.5 * (white.curv[k] + pial.curv[k]) for k in white.curv}
-
-        #     # white = nib.freesurfer.read_morph_data(surf_dir / "{hemi}.{curv}")
-        #     # pial = nib.freesurfer.read_morph_data(surf_dir / "{hemi}.{curv}.pial")
-
-        return cls(white, pial)
-
-    @classmethod
-    def from_simnibs_subject_dir(cls, sub_dir, hemi):
-        assert hemi in {"lh", "rh"}
-
-        raise NotImplementedError
-
+    def has_spherical_registration(self):
+        return self.spherical_registration is not None
 
     def compute_thickness(self) -> None:
         """Calculate thickness at each vertex of node-matched surfaces."""
@@ -59,18 +34,31 @@ class Hemisphere:
         # distance
         vi = self.white.vertices
         vo = self.pial.vertices
-        return np.linalg.norm(vo-vi, axis=1)
+        self.thickness = np.linalg.norm(vo - vi, axis=1)
 
-    def compute_average_curvature(self):
+
+    def compute_average_curvature(
+            self,
+            white_curv: None | Curvature = None,
+            pial_curv: None | Curvature = None,
+            curv_kwargs: None | dict = None,
+        ):
         """Average curvature estimates of white and pial surfaces."""
-        return Curvature(**{k: 0.5 * (getattr(self.white, k) + getattr(self.pial, k)) for k in self.white.curv._fields})
-
+        curv_kwargs = curv_kwargs or {}
+        white_curv = white_curv or self.white.compute_curvature(**curv_kwargs)
+        pial_curv = pial_curv or self.pial.compute_curvature(**curv_kwargs)
+        return Curvature(
+            **{
+                k: 0.5 * (getattr(white_curv, k) + getattr(pial_curv, k))
+                for k in white_curv._fields
+            }
+        )
 
     def compute_equivolume_fraction(
         self,
+        thickness: npt.NDArray,
+        curv: npt.NDArray,
         vol_frac: float = 0.5,
-        curv: None | npt.NDArray = None,
-        thickness: None | npt.NDArray = None,
     ):
         """Compute the distance fraction (between inner and outer surface whose
         distance is `thickness`) which yields the desired volume fraction at each
@@ -115,11 +103,8 @@ class Hemisphere:
         Michiel Kleinnijenhuis et al. (2015). Diffusion tensor characteristics of
             gyrencephaly using high resolution diffusion MRI in vivo at 7T.
         """
-        curv = self.compute_average_curvature() if curv is None else curv
-        thickness = self.compute_thickness() if thickness is None else thickness
-
         # Name variables in accordance with the reference
-        R = 1/np.abs(curv)
+        R = 1 / np.abs(curv)
         R3 = R**3
         T = thickness
         r = np.zeros_like(curv)
@@ -128,7 +113,9 @@ class Hemisphere:
         neg = curv < 0
 
         r[neg] = cortech.utils.compute_sphere_radius(vol_frac, T[neg], R[neg], R3[neg])
-        r[pos] = cortech.utils.compute_sphere_radius(1-vol_frac, T[pos], R[pos], R3[pos])
+        r[pos] = cortech.utils.compute_sphere_radius(
+            1 - vol_frac, T[pos], R[pos], R3[pos]
+        )
         # r[curv == 0] should be `vol_frac` but we take care of this in `dist_frac` below
 
         # r is a radius in between R and R+T so subtract R to get back to distances
@@ -144,12 +131,11 @@ class Hemisphere:
 
         # Now compute the pointwise distance fraction
         dist_frac = np.full_like(r, vol_frac)
-        _ = np.divide(r, T, out=dist_frac, where=T>0)
+        _ = np.divide(r, T, out=dist_frac, where=T > 0)
 
         return dist_frac
 
-
-    def _place_layer_at_distance_fraction(self, frac: float | npt.NDArray = 0.5):
+    def _layer_from_distance_fraction(self, frac: float | npt.NDArray = 0.5):
         """_summary_
 
         Parameters
@@ -166,18 +152,55 @@ class Hemisphere:
         """
         assert isinstance(frac, (float, np.ndarray))
         frac = frac if isinstance(frac, float) else frac[:, None]
-        return (1-frac) * self.white.vertices + frac * self.pial.vertices
+        return (1 - frac) * self.white.vertices + frac * self.pial.vertices
 
-    def place_layers(self, method: str, frac: float | npt.NDArray = 0.5):
+    def place_layers(
+            self,
+            thickness: npt.NDArray,
+            curv: None | npt.NDArray = None,
+            frac: float | npt.NDArray = 0.5,
+            method: str = "equi-volume",
+        ):
         if method in {"equidistance", "equivolume"}:
             match method:
-                case "equivolume":
-                    frac = self.compute_equivolume_fraction(frac)
-                case "equidistance":
+                case "equi-volume":
+                    assert curv is not None, "Curvature must be provided when using the equi-volume approach"
+                    frac = self.compute_equivolume_fraction(thickness, curv, frac)
+                case "equi-distance":
                     pass
-            return self._place_layer_at_distance_fraction(frac)
+            return self._layer_from_distance_fraction(frac)
         elif method == "laplace":
             return
+
+    @classmethod
+    def from_freesurfer_subject_dir(
+        cls,
+        sub_dir,
+        hemi,
+        white="white",
+        pial="pial",
+        spherical_registration="sphere.reg",
+        # thickness="thickness",
+        # curv="avg_curv",
+    ):
+        assert hemi in {"lh", "rh"}
+
+        white = Surface.from_freesurfer_subject_dir(sub_dir, f"{hemi}.{white}")
+        pial = Surface.from_freesurfer_subject_dir(sub_dir, f"{hemi}.{pial}")
+
+        if spherical_registration is not None:
+            spherical_registration = SphericalRegistration.from_freesurfer_subject_dir(
+                sub_dir, f"{hemi}.{spherical_registration}"
+            )
+
+        return cls(white, pial, spherical_registration=spherical_registration)
+
+    @classmethod
+    def from_simnibs_subject_dir(cls, sub_dir, hemi):
+        assert hemi in {"lh", "rh"}
+
+        raise NotImplementedError
+
 
 class Cortex:
     def __init__(self, lh: Hemisphere, rh: Hemisphere) -> None:
