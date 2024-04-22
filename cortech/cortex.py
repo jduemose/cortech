@@ -161,7 +161,7 @@ class Hemisphere:
             frac: float | npt.NDArray = 0.5,
             method: str = "equi-volume",
         ):
-        if method in {"equidistance", "equivolume"}:
+        if method in {"equi-distance", "equi-volume"}:
             match method:
                 case "equi-volume":
                     assert curv is not None, "Curvature must be provided when using the equi-volume approach"
