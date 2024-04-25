@@ -303,7 +303,9 @@ class Surface:
             raise ValueError("`navgs` should be >= 0")
 
     @staticmethod
-    def apply_affine(vertices: npt.NDArray, affine: npt.NDArray, move: bool = True) -> npt.NDArray:
+    def apply_affine(
+        vertices: npt.NDArray, affine: npt.NDArray, move: bool = True
+    ) -> npt.NDArray:
         """Apply an affine to an array of points.
 
         Parameters
@@ -330,7 +332,10 @@ class Surface:
         return out_coords
 
     def interpolate_to_nodes(
-            self, vol: npt.NDArray, affine: npt.NDArray, order: int = 3,
+        self,
+        vol: npt.NDArray,
+        affine: npt.NDArray,
+        order: int = 3,
     ) -> npt.NDArray:
         """Interpolate values from a volume to surface node positions.
 
@@ -351,8 +356,8 @@ class Surface:
         """
 
         # Check if metadata exists and if cras exists
-        if self.metadata is not None and 'cras' in self.metadata:
-            vertices = self.vertices + self.metadata['cras']
+        if self.metadata is not None and "cras" in self.metadata:
+            vertices = self.vertices + self.metadata["cras"]
         else:
             vertices = self.vertices
 
@@ -656,9 +661,28 @@ class Surface:
             fs_home = Path(os.environ["FREESURFER_HOME"])
             subject_dir = fs_home / "subjects" / subject_dir
 
-        v, f, metadata = nib.freesurfer.read_geometry(
-            Path(subject_dir) / "surf" / surface, read_metadata=read_metadata
-        )
+        surf_file = Path(subject_dir) / "surf" / surface
+        # FS is changing to gii, but slowly
+        if not surf_file.exists():
+            surf_file = surf_file.parent / (str(surf_file.name) + ".gii")
+            surf_gii = nib.load(surf_file)
+            v, f = surf_gii.agg_data()
+
+            v = v.astype(float)
+            # Getting information out of the gifti is a pain
+            # I'll only get the cras
+            cras_array = np.array(
+                [
+                    float(surf_gii.darrays[0].meta["VolGeomC_R"]),
+                    float(surf_gii.darrays[0].meta["VolGeomC_A"]),
+                    float(surf_gii.darrays[0].meta["VolGeomC_S"]),
+                ]
+            )
+            metadata = {"cras": cras_array}
+        else:
+            v, f, metadata = nib.freesurfer.read_geometry(
+                surf_file, read_metadata=read_metadata
+            )
         return cls(v, f, metadata)
 
 
