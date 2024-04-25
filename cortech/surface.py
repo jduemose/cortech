@@ -200,7 +200,11 @@ class Surface:
         # plane
         nivi = ni - vi[:, None]
         uv = np.squeeze(vit[:, :, None] @ nivi[:, None].swapaxes(2, 3))
+
         # Quadratic features
+        if len(uv.shape) == 2:
+            uv = uv[None, ...]
+
         A = np.concatenate(
             (uv**2, 2 * np.prod(uv, axis=1, keepdims=True)), axis=1
         ).swapaxes(1, 2)
@@ -209,9 +213,14 @@ class Surface:
 
         # Least squares solution
         U, S, Vt = np.linalg.svd(A, full_matrices=False)
+
         x = np.squeeze(
             Vt.swapaxes(1, 2) @ (U.swapaxes(1, 2) @ b[..., None] / S[..., None])
         )
+
+        # Add a dim if needed
+        if len(x.shape) == 1:
+            x = x[None, ...]
 
         # Estimate the coefficients of the second fundamental form
         # Hessian
