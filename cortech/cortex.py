@@ -17,11 +17,13 @@ class Hemisphere:
         self,
         white: Surface,
         pial: Surface,
+        inf = None,
         spherical_registration: None | SphericalRegistration = None,
     ) -> None:
 
         self.white = white
         self.pial = pial
+        self.inf = inf
         self.spherical_registration = spherical_registration
 
     def has_spherical_registration(self):
@@ -180,6 +182,7 @@ class Hemisphere:
         white="white",
         pial="pial",
         spherical_registration="sphere.reg",
+        inf=None
         # thickness="thickness",
         # curv="avg_curv",
     ):
@@ -187,13 +190,15 @@ class Hemisphere:
 
         white = Surface.from_freesurfer_subject_dir(sub_dir, f"{hemi}.{white}")
         pial = Surface.from_freesurfer_subject_dir(sub_dir, f"{hemi}.{pial}")
+        if inf is not None:
+            inf = Surface.from_freesurfer_subject_dir(sub_dir, f"{hemi}.{inf}")
 
         if spherical_registration is not None:
             spherical_registration = SphericalRegistration.from_freesurfer_subject_dir(
                 sub_dir, f"{hemi}.{spherical_registration}"
             )
 
-        return cls(white, pial, spherical_registration=spherical_registration)
+        return cls(white, pial, inf=inf, spherical_registration=spherical_registration)
 
     @classmethod
     def from_simnibs_subject_dir(cls, sub_dir, hemi):

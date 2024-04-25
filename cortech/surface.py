@@ -222,7 +222,9 @@ class Surface:
 
         return H_uv.squeeze()
 
-    def compute_curvature(self, percentile_clip_range = (0.1, 99.9), smooth_iter: int = 0):
+    def compute_curvature(
+        self, percentile_clip_range=(0.1, 99.9), smooth_iter: int = 0
+    ):
         """Compute principal curvatures. Optionally calculate mean and Gaussian
         curvatures as well.
 
@@ -243,8 +245,8 @@ class Surface:
 
         if percentile_clip_range is not None:
             clip_range = np.percentile(D, percentile_clip_range, axis=0)
-            for i,(low,hi) in enumerate(clip_range.T):
-                D[:,i] = np.clip(D[:,i], low, hi)
+            for i, (low, hi) in enumerate(clip_range.T):
+                D[:, i] = np.clip(D[:, i], low, hi)
 
         k1, k2 = D.T
         H = D.mean(1)
@@ -300,11 +302,14 @@ class Surface:
         else:
             raise ValueError("`navgs` should be >= 0")
 
-    def apply_affine(self, affine: npt.NDArray, move: bool = True) -> npt.NDArray:
+    @staticmethod
+    def apply_affine(vertices: npt.NDArray, affine: npt.NDArray, move: bool = True) -> npt.NDArray:
         """Apply an affine to an array of points.
 
         Parameters
         ----------
+        vertices : npt.NDArray
+            Node coordinates
         affine : npt.NDArray
             A 4x4 array defining the vox2world transformation.
         move : bool
@@ -317,7 +322,7 @@ class Surface:
         """
 
         # apply rotation & scale
-        out_coords = np.dot(self.vertices, affine[:3, :3].T)
+        out_coords = np.dot(vertices, affine[:3, :3].T)
         # apply translation
         if move:
             out_coords += affine[:3, 3]
@@ -325,7 +330,7 @@ class Surface:
         return out_coords
 
     def interpolate_to_nodes(
-        self, vol: npt.NDArray, affine: npt.NDArray, order: int = 3
+            self, vol: npt.NDArray, affine: npt.NDArray, order: int = 3,
     ) -> npt.NDArray:
         """Interpolate values from a volume to surface node positions.
 
@@ -345,14 +350,15 @@ class Surface:
 
         """
 
+        # Check if metadata exists and if cras exists
+        if self.metadata is not None and 'cras' in self.metadata:
+            vertices = self.vertices + self.metadata['cras']
+        else:
+            vertices = self.vertices
+
         # Map node coordinates to volume
         inv_affine = np.linalg.inv(affine)
-        # NOTE: I'm not sure if we should always work in scanner
-        # RAS or not, but here I'm assuming the vertices in the
-        # object are in surface RAS
-        vox_coords = self.apply_affine(
-            inv_affine, self.vertices + self.metadata["cras"]
-        )
+        vox_coords = self.apply_affine(vertices, inv_affine)
 
         # Deal with edges ala simnibs
         im_shape = vol.shape
@@ -366,6 +372,7 @@ class Surface:
         return map_coordinates(
             vol, vox_coords.T, order=order, mode="constant", cval=0.0, prefilter=True
         )
+
     def get_triangle_neighbors(self):
         """For each point get its neighboring triangles (i.e., the triangles to
         which it belongs).
@@ -714,7 +721,8 @@ class SphericalRegistration(Surface):
                     other.vertices, n_nearest_vertices
                 )
                 tris, weights, _, _ = self.project_points_to_surface(
-                    other.vertices, points_to_faces,
+                    other.vertices,
+                    points_to_faces,
                 )
                 rows = np.repeat(np.arange(other.n_vertices), other.n_dim)
                 cols = self.faces[tris].ravel()
@@ -726,5 +734,7 @@ class SphericalRegistration(Surface):
 
     def resample(self, values: npt.NDArray):
         if not hasattr(self, "_mapping_matrix"):
-            raise RuntimeError("Please compute the mapping matrix (using the `fit_to` method) first.")
+            raise RuntimeError(
+                "Please compute the mapping matrix (using the `fit_to` method) first."
+            )
         return self._mapping_matrix @ values
