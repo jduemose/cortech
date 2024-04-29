@@ -8,10 +8,10 @@ import numpy.typing as npt
 import scipy.sparse
 from scipy.ndimage import map_coordinates
 
+import cortech.freesurfer
 import cortech.utils
-
 from cortech.constants import Curvature
-
+from cortech.visualization import plot_surface
 
 class Surface:
     def __init__(
@@ -385,20 +385,24 @@ class Surface:
             vol, vox_coords.T, order=order, mode="constant", cval=0.0, prefilter=True
         )
 
-
     def taubin_smooth(
-            self, arr=None, a: float = 0.8, b: float =-0.85, n_iter: int = 1, inplace: bool = False
-        ):
-        out, A, nn = self._prepare_for_smooth(arr, inplace)
+        self,
+        arr=None,
+        a: float = 0.8,
+        b: float = -0.85,
+        n_iter: int = 1,
+        inplace: bool = False,
+    ):
+        arr, A, nn, out = self._prepare_for_smooth(arr, inplace)
         for _ in range(n_iter):
-            arr = self._gaussian_smooth_step(arr, a, A, nn, out) # Gauss step
-            arr = self._gaussian_smooth_step(arr, b, A, nn, out) # Taubin step
+            arr = self._gaussian_smooth_step(arr, a, A, nn, out)  # Gauss step
+            arr = self._gaussian_smooth_step(arr, b, A, nn, out)  # Taubin step
         return arr
 
     def gaussian_smooth(
-            self, arr=None, a: float = 0.8, n_iter: int = 1, inplace: bool = False
-        ):
-        out, A, nn = self._prepare_for_smooth(arr, inplace)
+        self, arr=None, a: float = 0.8, n_iter: int = 1, inplace: bool = False
+    ):
+        arr, A, nn, out = self._prepare_for_smooth(arr, inplace)
         for _ in range(n_iter):
             arr = self._gaussian_smooth_step(arr, a, A, nn, out)
         return arr
@@ -408,11 +412,11 @@ class Surface:
         out = arr if inplace else None
 
         A = self.compute_vertex_adjacency()
-        nn = A.sum(0)[:, None] # A is symmetric
+        nn = A.sum(0)[:, None]  # A is symmetric
 
-        return out, A, nn
+        return arr, A, nn, out
 
-    def _gaussian_smooth_step(self, x, a, A, nn=None, out=None):
+    def _gaussian_smooth_step(self, x, a, A, nn, out=None):
         """Perform the following update
 
             x_i = x_i + a * sum_{j in N(i)} (w_ij * (x_j - x_i))
@@ -703,11 +707,16 @@ class Surface:
 
         return tris, weights, projs, dists
 
+    def plot(self, scalars=None, mesh_kwargs=None, plotter_kwargs=None):
+        plot_surface(
+            self, scalars, mesh_kwargs=mesh_kwargs, plotter_kwargs=plotter_kwargs
+        )
+
     @classmethod
     def from_freesurfer_subject_dir(cls, subject_dir, surface, read_metadata=True):
         if subject_dir == "fsaverage":
-            fs_home = Path(os.environ["FREESURFER_HOME"])
-            subject_dir = fs_home / "subjects" / subject_dir
+            assert cortech.freesurfer.HAS_FREESURFER, "Could not find FREESURFER_HOME"
+            subject_dir = cortech.freesurfer.HOME / "subjects" / subject_dir
 
         surf_file = Path(subject_dir) / "surf" / surface
         # FS is changing to gii, but slowly
