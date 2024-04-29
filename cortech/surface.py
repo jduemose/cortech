@@ -387,6 +387,47 @@ class Surface:
             vol, vox_coords.T, order=order, mode="constant", cval=0.0, prefilter=True
         )
 
+
+    def taubin_smooth(
+            self, arr=None, a: float = 0.8, b: float =-0.85, n_iter: int = 1, inplace: bool = False
+        ):
+        out, A, nn = self._prepare_for_smooth(arr, inplace)
+        for _ in range(n_iter):
+            arr = self._gaussian_smooth_step(arr, a, A, nn, out) # Gauss step
+            arr = self._gaussian_smooth_step(arr, b, A, nn, out) # Taubin step
+        return arr
+
+    def gaussian_smooth(
+            self, arr=None, a: float = 0.8, n_iter: int = 1, inplace: bool = False
+        ):
+        out, A, nn = self._prepare_for_smooth(arr, inplace)
+        for _ in range(n_iter):
+            arr = self._gaussian_smooth_step(arr, a, A, nn, out)
+        return arr
+
+    def _prepare_for_smooth(self, arr, inplace):
+        arr = arr if arr is not None else self.vertices
+        out = arr if inplace else None
+
+        A = self.compute_vertex_adjacency()
+        nn = A.sum(0)[:, None] # A is symmetric
+
+        return out, A, nn
+
+    def _gaussian_smooth_step(self, x, a, A, nn=None, out=None):
+        """Perform the following update
+
+            x_i = x_i + a * sum_{j in N(i)} (w_ij * (x_j - x_i))
+
+        where N(i) is the neighborhood of i. Here we use w_ij = 1/|N(i)| where
+        |N(i)| is the number of neighbors of i.
+        """
+        if out is None:
+            return x + a * (A @ x / nn - x)
+        else:
+            out += a * (A @ x / nn - x)
+            return out
+
     def get_triangle_neighbors(self):
         """For each point get its neighboring triangles (i.e., the triangles to
         which it belongs).
