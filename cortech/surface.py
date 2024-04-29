@@ -202,8 +202,7 @@ class Surface:
         uv = np.squeeze(vit[:, :, None] @ nivi[:, None].swapaxes(2, 3))
 
         # Quadratic features
-        if len(uv.shape) == 2:
-            uv = uv[None, ...]
+        uv = np.atleast_3d(uv)
 
         A = np.concatenate(
             (uv**2, 2 * np.prod(uv, axis=1, keepdims=True)), axis=1
@@ -219,8 +218,7 @@ class Surface:
         )
 
         # Add a dim if needed
-        if len(x.shape) == 1:
-            x = x[None, ...]
+        x = np.atleast_2d(x)
 
         # Estimate the coefficients of the second fundamental form
         # Hessian
