@@ -36,10 +36,6 @@ def conda_pkgconfig_generator(out_dir=None):
     Libs: -L${libdir} -lfoo
 
     """
-    if not "CONDA_PREFIX" in os.environ:
-        return
-
-    # dir of environment
     assert "CONDA_PREFIX" in os.environ, "This is a convenience function for generating pkg-config files for libraries in a CONDA installation."
     prefix = Path(os.environ["CONDA_PREFIX"])
 
