@@ -1,5 +1,4 @@
 import itertools
-import os
 from pathlib import Path
 
 import nibabel as nib
@@ -10,8 +9,10 @@ from scipy.ndimage import map_coordinates
 
 import cortech.freesurfer
 import cortech.utils
+import cortech.cgal.polygon_mesh_processing as pmp
 from cortech.constants import Curvature
 from cortech.visualization import plot_surface
+
 
 class Surface:
     def __init__(
@@ -160,9 +161,7 @@ class Surface:
             vi = self.vertices[i]
             ni = self.vertices[adj[i].indices.reshape(-1, mm)]  # neighbors
 
-            H_uv[i] = self._second_fundamental_form_coefficients(
-                vi, ni, vt[i], vn[i]
-            )
+            H_uv[i] = self._second_fundamental_form_coefficients(vi, ni, vt[i], vn[i])
 
             # # only needed for bad conditioning?
             # rsq = A[:,:2].sum(1) # u**2 + v**2
@@ -251,24 +250,21 @@ class Surface:
             for i, (low, hi) in enumerate(clip_range.T):
                 D[:, i] = np.clip(D[:, i], low, hi)
 
-        k1, k2 = D.T
+        k1, k2 = np.ascontiguousarray(D.T)
         H = D.mean(1)
         K = D.prod(1)
 
         if smooth_iter > 0:
-            A = self.compute_vertex_adjacency(with_diag=True)
-
-            k1 = self.iterative_spatial_smoothing(k1, smooth_iter, A)
-            k2 = self.iterative_spatial_smoothing(k2, smooth_iter, A)
-            H = self.iterative_spatial_smoothing(D.mean(1), smooth_iter, A)
-            K = self.iterative_spatial_smoothing(D.prod(1), smooth_iter, A)
+            k1, k2, H, K = np.ascontiguousarray(
+                self.gaussian_smooth(
+                    np.stack((k1, k2, H, K), axis=1), n_iter=smooth_iter
+                ).T
+            )
 
         return Curvature(k1=k1, k2=k2, H=H, K=K)
 
         # store the curvature directions as well
         # self.curv_vec = Curvature(k1=E[:, 0], k2=[E[:, 1]])
-
-    # def smooth(self, data):
 
     def iterative_spatial_smoothing(
         self, data: npt.NDArray, niter: int, A=None, nn=None
@@ -380,6 +376,57 @@ class Surface:
         return map_coordinates(
             vol, vox_coords.T, order=order, mode="constant", cval=0.0, prefilter=True
         )
+
+    def remove_self_intersections(self, inplace: bool = False):
+        """Remove self-intersections. This process includes smoothing and
+        possibly hole filling.
+        """
+        v, f = pmp.remove_self_intersections(self.vertices, self.faces)
+        if inplace:
+            self.vertices = v
+            self.faces = f
+        return v, f
+
+    def self_intersections(self):
+        """Compute intersecting pairs of triangles."""
+        return pmp.self_intersections(self.vertices, self.faces)
+
+    def connected_components(self, constrained_faces: npt.NDArray | None = None):
+        """Compute connected components on the surface.
+
+        Returns
+        -------
+        component_label : npt.NDArray
+            The label associated with each face.
+        component_size : npt.NDArray
+            The size associated with each label.
+        """
+        return pmp.connected_components(self.vertices, self.faces, constrained_faces)
+
+    def isotropic_remeshing(
+        self, target_edge_length: float, n_iter: int = 1, inplace: bool = False
+    ):
+        v, f = pmp.isotropic_remeshing(
+            self.vertices, self.faces, target_edge_length, n_iter
+        )
+        if inplace:
+            self.vertices = v
+            self.faces = f
+        return v, f
+
+    def shape_smooth(
+        self,
+        constrained_vertices: npt.NDArray | None = None,
+        time: float = 0.01,
+        niter: int = 10,
+        inplace: bool = False,
+    ):
+        v = pmp.smooth_shape(
+            self.vertices, self.faces, constrained_vertices, time, niter
+        )
+        if inplace:
+            self.vertices = v
+        return v
 
     def taubin_smooth(
         self,
