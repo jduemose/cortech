@@ -262,44 +262,8 @@ class Surface:
             )
 
         return Curvature(k1=k1, k2=k2, H=H, K=K)
-
         # store the curvature directions as well
         # self.curv_vec = Curvature(k1=E[:, 0], k2=[E[:, 1]])
-
-    def iterative_spatial_smoothing(
-        self, data: npt.NDArray, niter: int, A=None, nn=None
-    ):
-        """Perform iterative spatial smoothing of `data` on the mesh defined by
-        the adjacency matrix `A`.
-
-        Parameters
-        ----------
-        data : npt.NDArray
-            Data to smooth.
-        niter : int
-            Number of smoothing iterations.
-        nn : None | npt.NDArray
-            Number of neighbors of each node. If not specified, it is calculated
-            from `A`. Defaults to None.
-
-        Returns
-        -------
-        data : npt.NDArray
-            The smoothed data.
-
-        Notes
-        -----
-        This function mimics Freesurfer's `MRISaverageCurvatures`.
-        """
-        A = self.compute_vertex_adjacency(with_diag=True) if A is None else A
-        if niter > 0:
-            nn = nn if nn is not None else np.array(A.sum(1)).squeeze()
-            nn = nn[:, None] if data.ndim > nn.ndim else nn
-            return self.iterative_spatial_smoothing(A @ data / nn, niter - 1, A, nn)
-        elif niter == 0:
-            return data
-        else:
-            raise ValueError("`navgs` should be >= 0")
 
     @staticmethod
     def apply_affine(
