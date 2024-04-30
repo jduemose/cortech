@@ -160,7 +160,9 @@ class Surface:
             vi = self.vertices[i]
             ni = self.vertices[adj[i].indices.reshape(-1, mm)]  # neighbors
 
-            H_uv[i] = self._second_fundamental_form_coefficients(vi, ni, vt[i], vn[i])
+            H_uv[i] = self._second_fundamental_form_coefficients(
+                vi, ni, vt[i], vn[i]
+            )
 
             # # only needed for bad conditioning?
             # rsq = A[:,:2].sum(1) # u**2 + v**2
@@ -190,35 +192,29 @@ class Surface:
         vit : vertex tangent plane vectors
         vin : vector normal
         """
-        vi = np.atleast_2d(vi)
         n_vi = vi.shape[0]
-        ni = np.atleast_3d(ni)
 
         # Fit a quadratic function centered on the current vertex using its
         # tangent vectors (say, u and v) as basis. The "function values" are
         # the distances from each neighbor to its projection on the tangent
         # plane
         nivi = ni - vi[:, None]
-        uv = np.squeeze(vit[:, :, None] @ nivi[:, None].swapaxes(2, 3))
-
         # Quadratic features
-        uv = np.atleast_3d(uv)
+        uv = vit[:, :, None] @ nivi[:, None].swapaxes(2, 3)
+        uv = uv[:, :, 0]
 
         A = np.concatenate(
             (uv**2, 2 * np.prod(uv, axis=1, keepdims=True)), axis=1
         ).swapaxes(1, 2)
         # Function values
-        b = np.squeeze(nivi @ vin[..., None])
+        b = nivi @ vin[..., None]
+        b = b[..., 0]
 
         # Least squares solution
         U, S, Vt = np.linalg.svd(A, full_matrices=False)
 
-        x = np.squeeze(
-            Vt.swapaxes(1, 2) @ (U.swapaxes(1, 2) @ b[..., None] / S[..., None])
-        )
-
-        # Add a dim if needed
-        x = np.atleast_2d(x)
+        x = Vt.swapaxes(1, 2) @ (U.swapaxes(1, 2) @ b[..., None] / S[..., None])
+        x = x[..., 0]
 
         # Estimate the coefficients of the second fundamental form
         # Hessian
