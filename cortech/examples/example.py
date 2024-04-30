@@ -18,6 +18,7 @@ bert = Hemisphere.from_freesurfer_subject_dir(
 
 # visualize with kwargs
 curv = bert.white.compute_curvature()
+curv1 = bert.white.compute_curvature(smooth_iter=10)
 bert.white.plot(
     curv.H,
     mesh_kwargs=dict(show_edges=True),
@@ -35,14 +36,13 @@ v = bert.white.taubin_smooth(n_iter=25)
 ts = Surface(v, bert.white.faces)
 ts.plot()
 
-
-
 # ---
 
 sub04_lh.white.remove_self_intersections()
 sub04_lh.pial.remove_self_intersections()
 
-sub04_lh.decouple_brain_surfaces()
+
+# sub04_lh.decouple_brain_surfaces()
 
 
 
