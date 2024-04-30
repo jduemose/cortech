@@ -1,0 +1,11 @@
+name: cortech
+channels:
+  - conda-forge
+dependencies:
+  - python = 3.11
+  - cgal-cpp = 5.4
+  - cython
+  - nibabel
+  - numpy
+  - scipy
+  - tbb-devel
