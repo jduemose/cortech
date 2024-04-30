@@ -19,6 +19,7 @@ requires-python = ">=3.11"
 dependencies =[
     "nibabel",
     "numpy",
+    "pyvista",
     "scipy",
     "tbb",
 ]
