@@ -65,7 +65,6 @@ def conda_pkgconfig_generator(out_dir=None):
         boost = prefixes | dict(inc_subdir="include"),
         cgal = prefixes | dict(inc_subdir="include", requires = "boost >= 1.74 eigen >= 3.4 mpfr >= 4.2 tbb zlib"),
         eigen = prefixes | dict(inc_subdir = "include/eigen3"),
-        hypre = prefixes | dict(inc_subdir="include"),
         tbb = prefixes | dict(lib_subdir="lib", inc_subdir="include", libs=["tbb", "tbbmalloc"])
     )
 
