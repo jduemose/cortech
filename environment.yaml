@@ -5,7 +5,11 @@ dependencies:
   - python = 3.11
   - cgal-cpp = 5.4
   - cython
+  - meson-python
   - nibabel
   - numpy
+  - pkg-config
+  - pyvista
   - scipy
   - tbb-devel
+  - zlib
