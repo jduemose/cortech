@@ -10,6 +10,7 @@ from scipy.ndimage import map_coordinates
 import cortech.freesurfer
 import cortech.utils
 import cortech.cgal.polygon_mesh_processing as pmp
+import cortech.cgal.convex_hull_3
 from cortech.constants import Curvature
 from cortech.visualization import plot_surface
 
@@ -340,6 +341,10 @@ class Surface:
         return map_coordinates(
             vol, vox_coords.T, order=order, mode="constant", cval=0.0, prefilter=True
         )
+
+    def convex_hull(self):
+        v, f = cortech.cgal.convex_hull_3.convex_hull(self.vertices)
+        return Surface(v, f, metadata=self.metadata)
 
     def remove_self_intersections(self, inplace: bool = False):
         """Remove self-intersections. This process includes smoothing and
@@ -713,6 +718,15 @@ class Surface:
             dists = dists[i]
 
         return tris, weights, projs, dists
+
+    def prune(self):
+        """Remove unused vertices and reindex faces."""
+        vertices_used = np.unique(self.faces)
+        reindexer = np.zeros(self.n_vertices, dtype=self.faces.dtype)
+        reindexer[vertices_used] = np.arange(vertices_used.size, dtype=self.faces.dtype)
+
+        self.vertices = self.vertices[vertices_used]
+        self.faces = reindexer[self.faces]
 
     def plot(self, scalars=None, mesh_kwargs=None, plotter_kwargs=None):
         plot_surface(
