@@ -12,6 +12,7 @@
 #include <CGAL/Polygon_mesh_processing/repair_self_intersections.h>
 #include <CGAL/Polygon_mesh_processing/self_intersections.h>
 #include <CGAL/Polygon_mesh_processing/smooth_shape.h>
+#include <CGAL/Side_of_triangle_mesh.h>
 
 #include <cgal_helpers.h>
 
@@ -23,6 +24,39 @@ using vertex_descriptor = Surface_mesh::Vertex_index;
 using face_descriptor = boost::graph_traits<Surface_mesh>::face_descriptor;
 
 namespace PMP = CGAL::Polygon_mesh_processing;
+
+std::vector<bool> pmp_points_inside_surface(
+    CGAL_t::vecvec<float> vertices,
+    CGAL_t::vecvec<int> faces,
+    CGAL_t::vecvec<float> points,
+    bool on_boundary_is_inside = true
+)
+{
+    Surface_mesh mesh = CGAL_sm::build(vertices, faces);
+    CGAL::Side_of_triangle_mesh<Surface_mesh, K> inside(mesh);
+
+    std::size_t n_points = mesh.number_of_vertices();
+    std::vector<bool> is_inside(n_points, false);
+
+    for (std::size_t i = 0; i < n_points; ++i)
+    {
+        auto p = Point_3(points[i][0], points[i][1], points[i][2]);
+
+        CGAL::Bounded_side res = inside(p);
+
+        if (res == CGAL::ON_BOUNDED_SIDE) {
+            is_inside[i] = true;
+        }
+        // point is *on* the boundary
+        else if (res == CGAL::ON_BOUNDARY && on_boundary_is_inside) {
+            is_inside[i] = true;
+        }
+        // else {
+        //     is_inside[i] = false;
+        // }
+    }
+    return is_inside;
+}
 
 std::pair<CGAL_t::vecvec<float>, CGAL_t::vecvec<int>> pmp_remove_self_intersections(
     CGAL_t::vecvec<float> vertices, CGAL_t::vecvec<int> faces

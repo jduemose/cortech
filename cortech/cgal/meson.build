@@ -12,17 +12,24 @@ cpp_cgal_args = cpp.get_supported_arguments(
 )
 
 cpp_cgal_macros = [
-    '-DCGAL_MESH_3_NO_DEPRECATED_SURFACE_INDEX',
-    '-DCGAL_MESH_3_NO_DEPRECATED_C3T3_ITERATORS',
+    # '-DCGAL_MESH_3_NO_DEPRECATED_SURFACE_INDEX',
+    # '-DCGAL_MESH_3_NO_DEPRECATED_C3T3_ITERATORS',
     '-DCGAL_CONCURRENT_MESH_3',
     '-DCGAL_EIGEN3_ENABLED',
     '-DCGAL_USE_ZLIB',
     '-DCGAL_LINKED_WITH_TBB',
 ]
 
+# cpp_boost_macros = [
+#     '-DBOOST_ALLOW_DEPRECATED_HEADERS',
+#     '-DBOOST_BIND_GLOBAL_PLACEHOLDERS',
+# ]
+
+# the current source (and build) dir is included by default; for header files
+# and source files
 cgal_helpers_dep = declare_dependency(
-    # include_directories: include_directories('.'), # the current dir is included by default
-    sources: 'cgal_helpers.cpp', # the current dir is searched by default
+    # include_directories: include_directories('.'),
+    sources: 'cgal_helpers.cpp',
 )
 
 pmp = python.extension_module(

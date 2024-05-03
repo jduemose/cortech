@@ -1,7 +1,6 @@
-# from libcpp cimport bool
+from libcpp cimport bool as cppbool
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
-# import cython
 from typing import Union
 import numpy as np
 import numpy.typing as npt
@@ -9,6 +8,13 @@ cimport numpy as np
 
 
 cdef extern from "polygon_mesh_processing_src.cpp" nogil:
+    vector[cppbool] pmp_points_inside_surface(
+        vector[vector[float]] vertices,
+        vector[vector[int]] faces,
+        vector[vector[float]] points,
+        cppbool on_boundary_is_inside,
+    )
+
     pair[vector[vector[float]], vector[vector[int]]] pmp_remove_self_intersections(
         vector[vector[float]] vertices,
         vector[vector[int]] faces,
@@ -27,8 +33,8 @@ cdef extern from "polygon_mesh_processing_src.cpp" nogil:
 
     # pair[vector[int], vector[int]] pmp_volume_connected_components(
     #     vector[vector[int]] faces,
-    #     bool do_orientation_tests,
-    #     bool do_self_intersection_tests,
+    #     cppbool do_orientation_tests,
+    #     cppbool do_self_intersection_tests,
     # )
 
     vector[vector[float]] pmp_smooth_shape(
@@ -44,10 +50,10 @@ cdef extern from "polygon_mesh_processing_src.cpp" nogil:
     #     vector[vector[int]] faces,
     #     vector[int] constrained_vertices,
     #     int niter,
-    #     bool use_angle_smoothing,
-    #     bool use_area_smoothing,
-    #     bool use_delaunay_flips,
-    #     bool use_safety_constraints
+    #     cppbool use_angle_smoothing,
+    #     cppbool use_area_smoothing,
+    #     cppbool use_delaunay_flips,
+    #     cppbool use_safety_constraints
     # )
 
     # vector[vector[float]] pmp_fair(
@@ -69,6 +75,40 @@ cdef extern from "polygon_mesh_processing_src.cpp" nogil:
     #     vector[vector[float]] vertices2,
     #     vector[vector[int]] faces2,
     # )
+
+
+def points_inside_surface(
+        vertices: npt.NDArray,
+        faces: npt.NDArray,
+        points: npt.NDArray,
+        on_boundary_is_inside: bool = True,
+    ) -> npt.NDArray:
+    """Compute the intersecting pairs of triangles in a surface mesh.
+
+    Parameters
+    ----------
+    vertices : npt.ArrayLike
+
+    faces : npt.ArrayLike
+
+    on_boundary_is_inside: bool
+        If true, label points on the boundary as being inside. Otherwise, label
+        as being outside.
+
+    Returns
+    -------
+    intersecting_pairs : npt
+
+    """
+    cdef np.ndarray[float, ndim=2] cpp_v = np.ascontiguousarray(vertices, dtype=np.float32)
+    cdef np.ndarray[int, ndim=2] cpp_f = np.ascontiguousarray(faces, dtype=np.int32)
+    cdef np.ndarray[float, ndim=2] cpp_p = np.ascontiguousarray(points, dtype=np.float32)
+    cdef cppbool cpp_on_boundary_is_inside = on_boundary_is_inside
+    cdef vector[cppbool] out
+
+    out = pmp_points_inside_surface(cpp_v, cpp_f, cpp_p, cpp_on_boundary_is_inside)
+
+    return np.array(out, dtype=bool)
 
 
 def remove_self_intersections(
@@ -164,8 +204,8 @@ def connected_components(
 
 # def volume_connected_components(faces, do_orientation_tests = False, do_self_intersection_tests = False):
 #     cdef np.ndarray[int, ndim=2] cpp_f = np.ascontiguousarray(faces, dtype=np.int32)
-#     cdef bool cpp_do_orientation_tests = do_orientation_tests
-#     cdef bool cpp_do_self_intersection_tests = do_self_intersection_tests
+#     cdef cppbool cpp_do_orientation_tests = do_orientation_tests
+#     cdef cppbool cpp_do_self_intersection_tests = do_self_intersection_tests
 
 #     cdef pair[vector[int], vector[int]] out
 
