@@ -385,6 +385,10 @@ class Surface:
             self.faces = f
         return v, f
 
+    def points_inside_surface(self, points, on_boundary_is_inside: bool = True):
+        """For each point in `points`, test it is inside the surface or not."""
+        return pmp.points_inside_surface(points, on_boundary_is_inside)
+
     def shape_smooth(
         self,
         constrained_vertices: npt.NDArray | None = None,
@@ -809,8 +813,6 @@ class SphericalRegistration(Surface):
             The target mesh (i.e., the mesh to interpolate *to*).
 
         """
-        assert method in {"nearest", "linear"}
-
         match method:
             case "nearest":
                 kdtree = scipy.spatial.cKDTree(self.vertices)
@@ -831,6 +833,8 @@ class SphericalRegistration(Surface):
                 rows = np.repeat(np.arange(other.n_vertices), other.n_dim)
                 cols = self.faces[tris].ravel()
                 weights = weights.ravel()
+            case _:
+                raise ValueError("Invalid mapping `method`.")
 
         self._mapping_matrix = scipy.sparse.csr_array(
             (weights, (rows, cols)), shape=(other.n_vertices, self.n_vertices)
