@@ -69,6 +69,8 @@ class Surface:
             A.setdiag(1)
             A = A.tocsr()
 
+        A.sum_duplicates() # ensure canocical format
+
         return A
 
     def compute_face_normals(self):
@@ -830,9 +832,10 @@ class SphericalRegistration(Surface):
                 cols = self.faces[tris].ravel()
                 weights = weights.ravel()
 
-        self._mapping_matrix = scipy.sparse.csr_matrix(
+        self._mapping_matrix = scipy.sparse.csr_array(
             (weights, (rows, cols)), shape=(other.n_vertices, self.n_vertices)
         )
+        self._mapping_matrix.sum_duplicates()
 
     def resample(self, values: npt.NDArray):
         if not hasattr(self, "_mapping_matrix"):
