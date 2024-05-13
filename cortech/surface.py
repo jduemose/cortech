@@ -413,8 +413,8 @@ class Surface:
     ):
         arr, A, nn, out = self._prepare_for_smooth(arr, inplace)
         for _ in range(n_iter):
-            arr = self._gaussian_smooth_step(arr, a, A, nn, out)  # Gauss step
-            arr = self._gaussian_smooth_step(arr, b, A, nn, out)  # Taubin step
+            arr = self._gaussian_smooth_step(arr, a, A, nn, out) # Gauss step
+            arr = self._gaussian_smooth_step(arr, b, A, nn, out) # Taubin step
         return arr
 
     def gaussian_smooth(

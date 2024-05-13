@@ -36,7 +36,7 @@ class Hemisphere:
         # distance
         vi = self.white.vertices
         vo = self.pial.vertices
-        self.thickness = np.linalg.norm(vo - vi, axis=1)
+        return np.linalg.norm(vo - vi, axis=1)
 
 
     def compute_average_curvature(
