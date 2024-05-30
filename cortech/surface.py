@@ -268,6 +268,56 @@ class Surface:
         # store the curvature directions as well
         # self.curv_vec = Curvature(k1=E[:, 0], k2=[E[:, 1]])
 
+    def k_ring_neighbors(
+        self,
+        k: int,
+        indices: None | npt.NDArray = None,
+        adj: None | scipy.sparse.csr_array = None,
+    ):
+        """Compute k-ring neighborhoods of vertices.
+
+        Parameters
+        ----------
+        k : int
+            Find the kth ring neighbors.
+        indices : None | npt.NDArray
+            The indices of the vertices for which to do the neighbor search.
+            Default is for all vertices.
+        adj : None | scipy.sparse.csr_array
+            scipy.sparse adjacency matrix of the vertices. If None, then it is
+            computed.
+
+        Returns
+        -------
+        out_knn : list[npt.NDArray]
+            List of numpy arrays such that out_knn[i] contains the neighbors of
+            vertex i (including i, the 0-ring).
+        out_kr : np.NDArray
+            Array of indices (into `out_knn`) of each ring of neighbors such
+            that
+
+                knn[i, kr[0]:kr[1]] gives the 0-ring (starting) vertices of i,
+                knn[i, kr[1]:kr[2]] gives the 1-ring neighboring vertices of i
+                ...
+
+            The array has length k+2 and a similar interpretation as
+            `scipy.sparse.csr_array.indptr`.
+
+        """
+        # k_max : the maximum ring neighbor to gather
+        assert k > 0, "`k` must be a positive integer."
+        adj = self.compute_vertex_adjacency() if adj is None else adj
+        n = self.n_vertices
+
+        if indices is None:
+            indices = np.arange(n).reshape(-1, 1)
+        else:
+            assert indices.ndim == 2, "`indices` must be (n, n_start_indices)"
+
+        knn, kr = cortech.utils.k_ring_neighbors(k, indices, n, adj.indices, adj.indptr)
+
+        return knn, kr
+
     @staticmethod
     def apply_affine(
         vertices: npt.NDArray, affine: npt.NDArray, move: bool = True
@@ -413,8 +463,8 @@ class Surface:
     ):
         arr, A, nn, out = self._prepare_for_smooth(arr, inplace)
         for _ in range(n_iter):
-            arr = self._gaussian_smooth_step(arr, a, A, nn, out) # Gauss step
-            arr = self._gaussian_smooth_step(arr, b, A, nn, out) # Taubin step
+            arr = self._gaussian_smooth_step(arr, a, A, nn, out)  # Gauss step
+            arr = self._gaussian_smooth_step(arr, b, A, nn, out)  # Taubin step
         return arr
 
     def gaussian_smooth(
