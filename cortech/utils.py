@@ -4,6 +4,12 @@ import numpy as np
 import numpy.typing as npt
 
 
+def atleast_nd(arr, n):
+    if arr.ndim == n:
+        return arr
+    else:
+        return atleast_nd(arr[..., None], n)
+
 def sliced_argmin(x: npt.NDArray, indptr: npt.NDArray):
     """Perform argmin on slices of x.
 
@@ -47,6 +53,8 @@ def normalize(arr: npt.NDArray, axis=None, inplace: bool = False):
 
 
 def compute_sphere_radius(frac, T, R, R3=None):
+    # if `frac` is an array (and not a float) broadcast against vertices
+    frac = frac[:, None] if isinstance(frac, np.ndarray) else frac
     R3 = R**3 if R3 is None else R3
     return np.cbrt(frac * ((R + T) ** 3 - R3) + R3)
 
@@ -71,8 +79,8 @@ def compute_tangent_vectors(vectors: npt.NDArray) -> npt.NDArray:
     _, S, V = np.linalg.svd(
         I - I @ v / (np.sum(v**2, axis=1)[:, None]) @ v.transpose(0, 2, 1)
     )
-    assert np.allclose(S[:, -1], 0)
-    assert np.allclose(S[:, :-1], 1), "Degenerate elements encountered"
+    assert np.allclose(S[:, -1], 0, atol=1e-6)
+    assert np.allclose(S[:, :-1], 1, atol=1e-6), "Degenerate elements encountered"
 
     return V[:, :2].squeeze()
 

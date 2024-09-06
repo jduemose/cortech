@@ -4,6 +4,7 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 import numpy.typing as npt
+import pyvista as pv
 import scipy.sparse
 from scipy.ndimage import map_coordinates
 
@@ -406,7 +407,8 @@ class Surface:
         if inplace:
             self.vertices = v
             self.faces = f
-        return v, f
+        else:
+            return Surface(v, f)
 
     def self_intersections(self):
         """Compute intersecting pairs of triangles."""
@@ -437,7 +439,7 @@ class Surface:
 
     def points_inside_surface(self, points, on_boundary_is_inside: bool = True):
         """For each point in `points`, test it is inside the surface or not."""
-        return pmp.points_inside_surface(points, on_boundary_is_inside)
+        return pmp.points_inside_surface(self.vertices, self.faces, points, on_boundary_is_inside)
 
     def shape_smooth(
         self,
@@ -788,6 +790,14 @@ class Surface:
         plot_surface(
             self, scalars, mesh_kwargs=mesh_kwargs, plotter_kwargs=plotter_kwargs
         )
+
+    def save(self, filename: Path | str, scalars: dict | None = None):
+        m = pv.make_tri_mesh(self.vertices, self.faces)
+        if scalars is not None:
+            for k,v in scalars.items():
+                m[k] = v
+        m.save(filename)
+
 
     @classmethod
     def from_freesurfer_subject_dir(cls, subject_dir, surface, read_metadata=True):

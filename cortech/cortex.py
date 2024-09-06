@@ -105,39 +105,41 @@ class Hemisphere:
         Michiel Kleinnijenhuis et al. (2015). Diffusion tensor characteristics of
             gyrencephaly using high resolution diffusion MRI in vivo at 7T.
         """
+        frac = np.atleast_1d(vol_frac)
+
         # Name variables in accordance with the reference
         R = 1 / np.abs(curv)
         R3 = R**3
         T = thickness
-        r = np.zeros_like(curv)
+        r = np.zeros((len(frac), len(curv)))
 
         pos = curv > 0
         neg = curv < 0
 
-        r[neg] = cortech.utils.compute_sphere_radius(vol_frac, T[neg], R[neg], R3[neg])
-        r[pos] = cortech.utils.compute_sphere_radius(
-            1 - vol_frac, T[pos], R[pos], R3[pos]
+        r[:, neg] = cortech.utils.compute_sphere_radius(frac, T[neg], R[neg], R3[neg])
+        r[:, pos] = cortech.utils.compute_sphere_radius(
+            1 - frac, T[pos], R[pos], R3[pos]
         )
-        # r[curv == 0] should be `vol_frac` but we take care of this in `dist_frac` below
+        # r[curv == 0] should be `frac` but we take care of this in `dist_frac` below
 
         # r is a radius in between R and R+T so subtract R to get back to distances
         # that relate to the thickness
         r -= R
 
         # Correct positive curvature positions
-        r[pos] *= -1
-        r[pos] += T[pos]
+        r[:, pos] *= -1
+        r[:, pos] += T[pos]
 
         # Ensure r is valid
         _ = np.clip(r, 0, T, out=r)
 
         # Now compute the pointwise distance fraction
-        dist_frac = np.full_like(r, vol_frac)
+        dist_frac = np.zeros_like(r)
         _ = np.divide(r, T, out=dist_frac, where=T > 0)
 
-        return dist_frac
+        return dist_frac.squeeze()
 
-    def _layer_from_distance_fraction(self, frac: float | npt.NDArray = 0.5):
+    def _layer_from_distance_fraction(self, f: float | npt.NDArray = 0.5):
         """_summary_
 
         Parameters
@@ -147,14 +149,21 @@ class Hemisphere:
         frac : float | npt.NDArray
             Fraction measured from inner surface, e.g., 0.25 would be one quarter
             of the way from the inner to the outer surface. Defaults to 0.5.
+            frac = float | (1, ) | (n_frac,) | (n_vertices, ) | (n_frac, n_vertices)
 
         Returns
         -------
         _type_: _description_
         """
-        assert isinstance(frac, (float, np.ndarray))
-        frac = frac if isinstance(frac, float) else frac[:, None]
-        return (1 - frac) * self.white.vertices + frac * self.pial.vertices
+        f = np.atleast_1d(f)
+        if f.ndim == 1:
+            if f.shape[0] == self.white.n_vertices:
+                f = f[None]
+        elif f.ndim == 2:
+            fd2 = f.shape[1]
+            assert fd2 == 1 or fd2 == self.white.n_vertices
+        f = cortech.utils.atleast_nd(f, 3)
+        return np.squeeze((1 - f) * self.white.vertices + f * self.pial.vertices)
 
     def place_layers(
             self,
