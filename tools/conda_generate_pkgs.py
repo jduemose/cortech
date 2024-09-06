@@ -59,9 +59,9 @@ def conda_pkgconfig_generator(out_dir=None):
     prefixes = dict(prefix=prefix, exec_prefix=exec_prefix)
     packages = dict(
         boost = prefixes | dict(inc_subdir="include"),
-        cgal = prefixes | dict(inc_subdir="include", requires = "boost >= 1.74 eigen >= 3.4 mpfr >= 4.2 tbb zlib"),
+        cgal = prefixes | dict(inc_subdir="include", requires = "boost >= 1.74 eigen >= 3.4 mpfr >= 4.2"),
         eigen = prefixes | dict(inc_subdir = "include/eigen3"),
-        tbb = prefixes | dict(lib_subdir="lib", inc_subdir="include", libs=["tbb", "tbbmalloc"])
+        # tbb = prefixes | dict(lib_subdir="lib", inc_subdir="include", libs=["tbb", "tbbmalloc"])
     )
 
     pkg_config = {}
@@ -123,6 +123,7 @@ def make_pkg_config(
             out += f" -I${{includedir}}"
         if cflags:
             out += f" {cflags}"
+    out += "\n"
     return out
 
 
@@ -140,6 +141,8 @@ def get_package_version(name):
     elif len(info) > 1:
         if name == "tbb":
             info = info[:1] # tbb and tbb-devel so choose tbb
+        elif name == "boost":
+            info = info[:1] # libboost, libboost-devel, libboost-headers
         else:
             raise RuntimeError(
                 f"Found multiple conda packages for {name}. conda list returned\n{out.stdout.decode()}"

@@ -14,10 +14,10 @@ cpp_cgal_args = cpp.get_supported_arguments(
 cpp_cgal_macros = [
     # '-DCGAL_MESH_3_NO_DEPRECATED_SURFACE_INDEX',
     # '-DCGAL_MESH_3_NO_DEPRECATED_C3T3_ITERATORS',
-    '-DCGAL_CONCURRENT_MESH_3',
+    # '-DCGAL_CONCURRENT_MESH_3',
     '-DCGAL_EIGEN3_ENABLED',
     '-DCGAL_USE_ZLIB',
-    '-DCGAL_LINKED_WITH_TBB',
+    # '-DCGAL_LINKED_WITH_TBB',
 ]
 
 # cpp_boost_macros = [

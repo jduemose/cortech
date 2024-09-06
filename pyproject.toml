@@ -22,7 +22,6 @@ dependencies =[
     "numpy",
     "pyvista",
     "scipy",
-    "tbb",
 ]
 
 # [project.urls]  # Optional
@@ -37,6 +36,7 @@ requires = [
     "cython >= 3.0",
     "wheel >= 0.41",
     "numpy >= 1.26",
+    "pkg-config >= 0.29",
 ]
 
 # [project.optional-dependencies]
