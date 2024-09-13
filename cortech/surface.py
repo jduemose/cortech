@@ -134,7 +134,8 @@ class Surface:
             Principal curvatures with k1 and k2 (maximum and minimum curvature,
             respectively) in first and second column.
         E : ndarray
-            Principal directions corresponding to the principal curvatures.
+            Principal directions corresponding to the principal curvatures
+            (E[:, 0] and E[:, 1] correspond to k1 and k2, respectively).
 
         Notes
         -----
@@ -184,16 +185,23 @@ class Surface:
         # sort in *descending* order
         D = D[:, ::-1]
         E = E[:, ::-1]
-        return D, E
+        # Rotate the tangent vectors so they correspond to the principal
+        # curvature directions (i.e., we are back in the original space).
+        E_tangent = E.swapaxes(1,2) @ vt
+        return D, E_tangent
 
     @staticmethod
     def _second_fundamental_form_coefficients(vi, ni, vit, vin):
         """
 
-        vi : vertex at which to estimate curvature
-        ni : neighbors
-        vit : vertex tangent plane vectors
-        vin : vector normal
+        V = number of vertices
+        N = number of neighbors
+
+        vi : vertex at which to estimate curvature (V, 3)
+        ni : neighbors (V, N, 3)
+        vit : vertex tangent plane vectors (V, 2, 3)
+        vin : vector normal (V, 3)
+
         """
         n_vi = vi.shape[0]
 
@@ -203,19 +211,22 @@ class Surface:
         # plane
         nivi = ni - vi[:, None]
         # Quadratic features
+        # (inner product of tangent vectors and vector from v to its neighbors)
         uv = vit[:, :, None] @ nivi[:, None].swapaxes(2, 3)
-        uv = uv[:, :, 0]
+        uv = uv[:, :, 0] # (V, 2, N)
 
         A = np.concatenate(
             (uv**2, 2 * np.prod(uv, axis=1, keepdims=True)), axis=1
         ).swapaxes(1, 2)
         # Function values
+        # (inner product of normal vector and vector from v to its neighbors)
         b = nivi @ vin[..., None]
         b = b[..., 0]
 
         # Least squares solution
         U, S, Vt = np.linalg.svd(A, full_matrices=False)
 
+        # coefficients for u**2, v**2, u*v
         x = Vt.swapaxes(1, 2) @ (U.swapaxes(1, 2) @ b[..., None] / S[..., None])
         x = x[..., 0]
 
