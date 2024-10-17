@@ -36,22 +36,33 @@ requires = [
     "cython >= 3.0",
     "wheel >= 0.41",
     "numpy >= 1.26",
-    # "pkg-config",
 ]
-
-[tool.cibuildwheel]
-build = "cp311-* cp312-*"
 
 # CIBW_BEFORE_ALL_LINUX:
 # CIBW_BEFORE_ALL_MACOSX:
 # CIBW_BEFORE_ALL_WINDOWS:
-before-all = "pip install conan; conan install --output-folder conan_deps ."
 
-# additional args to pip
-build-frontend = "pip; args: --config-settings=setup-args='--native-file conan_deps/conan_meson_native.ini'"
+[tool.cibuildwheel]
+build = ["cp311-*", "cp312-*"]
+# install conan, create default profile, install dependencies
+before-all = "pip install conan && conan profile detect && conan install --build=missing --output-folder={package}/dependencies ."
+
+#test-command = "pytest {package}/cortech"
 
 [tool.cibuildwheel.linux]
+archs = ["native"]
 manylinux-x86_64-image = "manylinux_2_28"
+skip = ["*musllinux*"]
+
+# additional args to pip: pass the meson_native file created by conan (setting things like compiler etc.)
+
+[tool.cibuildwheel.linux.config-settings]
+# in the manylinux container, the project is located in /project, hence this
+# is hardcoded here as {package} does not seem to work.
+# (see https://cibuildwheel.pypa.io/en/stable/faq/#linux-builds-in-containers)
+setup-args = "--native-file=/project/dependencies/conan_meson_native.ini"
+
+
 
 # [project.optional-dependencies]
 # test =[
