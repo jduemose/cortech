@@ -15,10 +15,10 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest] #  macos-14, windows-latest
-        python-version: ["3.11"]
+        # os: [ubuntu-latest] #  macos-14, windows-latest
+        os: [macos-14] #  macos-14, windows-latest
 
-    if: ${{ startsWith(github.ref, 'refs/tags') || !contains(github.event.head_commit.message, '[skip ci]') || !contains(github.event.head_commit.message, '[skip linux ci]') }}
+    if: ${{ startsWith(github.ref, 'refs/tags') || !contains(github.event.head_commit.message, '[skip ci]') }}
 
     steps:
     - uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
     - name: Python - set up ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.11
 
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.21.3
@@ -35,5 +35,29 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+        name: cibw-wheels-${{ matrix.os }}
         path: ./wheelhouse/*.whl
+
+  publish:
+    name: Publish wheels on ${{ matrix.os }}
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest] #  macos-14, windows-latest
+        python-version: ["3.11"]
+    permissions:
+      contents: write
+    # OS not important here
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+    - name: Artifact - download
+      uses: actions/download-artifact@v4
+      with:
+        name: cibw-wheels-${{ matrix.os }}
+        path: ${{ github.workspace }}
+    - name: Artifact - Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ github.workspace }}/*.whl
