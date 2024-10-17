@@ -5,7 +5,7 @@ authors = [
     {name = "Oula Puonti", email = "oulap@drcmr.dk" },
 ]
 maintainers = [
-  {name = "Cortech developers", email = "bla@bla.org" },
+  {name = "Cortech developers"},
 ]
 license = {text = "GPL3"}
 description = "Cortical layer placement and analysis"
@@ -36,8 +36,22 @@ requires = [
     "cython >= 3.0",
     "wheel >= 0.41",
     "numpy >= 1.26",
-    "pkg-config >= 0.29",
+    # "pkg-config",
 ]
+
+[tool.cibuildwheel]
+build = "cp311-* cp312-*"
+
+# CIBW_BEFORE_ALL_LINUX:
+# CIBW_BEFORE_ALL_MACOSX:
+# CIBW_BEFORE_ALL_WINDOWS:
+before-all = "pip install conan; conan install --output-folder conan_deps ."
+
+# additional args to pip
+build-frontend = "pip; args: --config-settings=setup-args='--native-file conan_deps/conan_meson_native.ini'"
+
+[tool.cibuildwheel.linux]
+manylinux-x86_64-image = "manylinux_2_28"
 
 # [project.optional-dependencies]
 # test =[

@@ -316,7 +316,7 @@ def smooth_shape(
 def isotropic_remeshing(
         vertices: npt.ArrayLike,
         faces: npt.ArrayLike,
-        target_edge_length: double,
+        target_edge_length: float,
         n_iterations: int = 1,
     ):
     """Isotropic surface remeshing. Remeshing is achieved by a combination of

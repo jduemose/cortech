@@ -80,7 +80,7 @@ cython_gen_cpp = generator(
 python_module = import('python')
 python = python_module.find_installation(pure: false)
 python_dep = python.dependency()
-# py.get_install_dir() is the dir which `subdir` is relative to, i.e.,
+# python.get_install_dir() is the dir which `subdir` is relative to, i.e.,
 # .../site-packages/. Therefore
 cortech_install_dir = python.get_install_dir()
 
@@ -93,7 +93,7 @@ incdir_numpy = run_command(
 numpy_include = include_directories(incdir_numpy)
 
 numpy_dep = declare_dependency(include_directories: numpy_include)
-cgal_dep = dependency('cgal', version: '>= 5.4')
+cgal_dep = dependency('cgal', version: '>= 5.6')
 
 # files = ['3RD-PARTY.md', 'LICENSE.txt', 'README.md']
 # install_data(files, install_dir: simnibs_install_dir / 'simnibs')
