@@ -66,7 +66,7 @@ skip = ["*musllinux*"]
 setup-args = "--native-file=conan_meson_native.ini"
 
 [tool.cibuildwheel.macos.config-settings]
-setup-args = "--native-file=conan_meson_native.ini"
+setup-args = "--native-file=/Users/runner/work/cortech/cortech/conan_meson_native.ini"
 
 
 # [project.optional-dependencies]
