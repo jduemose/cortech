@@ -58,15 +58,15 @@ skip = ["*musllinux*"]
 # Additional args to pip
 # - pass the meson_native file created by conan (setting things like compiler
 #   etc.)
-[tool.cibuildwheel.linux.config-settings]
+# [tool.cibuildwheel.linux.config-settings]
 # in the manylinux container, the project is located in /project, hence this
 # is hardcoded here as the {package} placeholder does not seem to work at this
 # stage.
 # (see https://cibuildwheel.pypa.io/en/stable/faq/#linux-builds-in-containers)
-setup-args = "--native-file=conan_meson_native.ini"
+# setup-args = "--native-file=conan_meson_native.ini"
 
-[tool.cibuildwheel.macos.config-settings]
-setup-args = "--native-file=/Users/runner/work/cortech/cortech/conan_meson_native.ini"
+# [tool.cibuildwheel.macos.config-settings]
+# setup-args = "--native-file=/Users/runner/work/cortech/cortech/conan_meson_native.ini"
 
 
 # [project.optional-dependencies]
