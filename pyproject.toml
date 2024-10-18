@@ -46,8 +46,8 @@ requires = [
 build = ["cp311-*", "cp312-*"]
 archs = ["native"]
 
-# install conan, create default profile, install dependencies --output-folder={package}/dependencies
-before-all = "pip install conan && conan profile detect && conan install --build=missing ."
+# install conan, create default profile, install dependencies
+before-all = "pip install conan && conan profile detect && conan install --build=missing --output-folder={package} ."
 
 #test-command = "pytest {package}/cortech"
 
