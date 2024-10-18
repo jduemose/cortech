@@ -36,7 +36,7 @@ jobs:
 
         Write-Host $escaped_workspace
 
-        Write-Host "CIBW_CONFIG_SETTINGS=$escaped_workspace" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "CIBW_CONFIG_SETTINGS=$escaped_workspace" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.21.3
