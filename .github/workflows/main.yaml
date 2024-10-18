@@ -32,7 +32,7 @@ jobs:
       run: |
         echo ${{github.workspace}}
 
-        $escaped_workspace = "${{github.workspace}}\conan_meson_native.ini" - replace "\\", "\\\\"
+        $escaped_workspace = "${{github.workspace}}\conan_meson_native.ini" -replace "\\", "\\\\"
 
         Write-Host $escaped_workspace
 
