@@ -38,43 +38,28 @@ requires = [
     "numpy >= 1.26",
 ]
 
-# CIBW_BEFORE_ALL_LINUX:
-# CIBW_BEFORE_ALL_MACOSX:
-# CIBW_BEFORE_ALL_WINDOWS:
-
 [tool.cibuildwheel]
 build = ["cp311-*", "cp312-*"]
 archs = ["native"]
 
-# install conan, create default profile, install dependencies
+# Install conan, create default profile, install dependencies
 before-all = "pip install conan && conan profile detect && conan install --build=missing --output-folder={package} ."
 
 #test-command = "pytest {package}/cortech"
 
 [tool.cibuildwheel.linux]
+# Only build manylinux wheels for linux
 manylinux-x86_64-image = "manylinux_2_28"
 skip = ["*musllinux*"]
 
-# Additional args to pip
-# - pass the meson_native file created by conan (setting things like compiler
-#   etc.)
-# [tool.cibuildwheel.linux.config-settings]
-# in the manylinux container, the project is located in /project, hence this
-# is hardcoded here as the {package} placeholder does not seem to work at this
-# stage.
-# (see https://cibuildwheel.pypa.io/en/stable/faq/#linux-builds-in-containers)
-# setup-args = "--native-file=conan_meson_native.ini"
-
-# [tool.cibuildwheel.macos.config-settings]
-# setup-args = "--native-file=/Users/runner/work/cortech/cortech/conan_meson_native.ini"
-
+[tool.cibuildwheel.windows]
+# cibuildwheel does not yet include delvewheel by default and thus does not
+# repair wheels on windows. Therefore, add this
+before-build = "pip install delvewheel"
+repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 # [project.optional-dependencies]
 # test =[
 #     "pytest",
 #     "mock"
-# ]
-# GUI =[
-#     "pyqt5",
-#     "pyopengl"
 # ]
