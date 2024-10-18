@@ -46,8 +46,8 @@ requires = [
 build = ["cp311-*", "cp312-*"]
 archs = ["native"]
 
-# install conan, create default profile, install dependencies
-before-all = "pip install conan && conan profile detect && conan install --build=missing --output-folder={package}/dependencies ."
+# install conan, create default profile, install dependencies --output-folder={package}/dependencies
+before-all = "pip install conan && conan profile detect && conan install --build=missing ."
 
 #test-command = "pytest {package}/cortech"
 
@@ -63,10 +63,10 @@ skip = ["*musllinux*"]
 # is hardcoded here as the {package} placeholder does not seem to work at this
 # stage.
 # (see https://cibuildwheel.pypa.io/en/stable/faq/#linux-builds-in-containers)
-setup-args = "--native-file=/project/dependencies/conan_meson_native.ini"
+setup-args = "--native-file=conan_meson_native.ini"
 
 [tool.cibuildwheel.macos.config-settings]
-setup-args = "--native-file=$(pwd)/dependencies/conan_meson_native.ini"
+setup-args = "--native-file=conan_meson_native.ini"
 
 
 # [project.optional-dependencies]
