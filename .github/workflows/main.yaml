@@ -35,7 +35,7 @@ jobs:
         $escaped_workspace = ${{github.workspace}}.replace('\\', '\\\\')
 
         echo $escaped_workspace
-        $escaped_workspace = $escaped_workspace\\conan_meson_native.ini"
+        $escaped_workspace = $escaped_workspace\\conan_meson_native.ini
 
         echo $escaped_workspace
 
