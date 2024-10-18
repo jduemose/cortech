@@ -30,6 +30,10 @@ jobs:
 
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.21.3
+      env:
+      #   CIBW_CONFIG_SETTINGS: "setup-args=--native-file=conan_meson_native.ini"
+        CIBW_BUILD_FRONTEND: "pip; args: -v" # additional args
+        CIBW_BEFORE_BUILD: "echo $(pwd)"
       with:
         output-dir: wheelhouse
 
