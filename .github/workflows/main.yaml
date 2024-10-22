@@ -15,7 +15,8 @@ jobs:
     strategy:
       # fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-14] # , windows-latest
+        # os: [ubuntu-latest, macos-14] # , windows-latest
+        os: [windows-2022] # , windows-latest
 
     if: ${{ startsWith(github.ref, 'refs/tags') || !contains(github.event.head_commit.message, '[skip ci]') }}
 
@@ -54,15 +55,13 @@ jobs:
         $meson_native_file = "${{ github.workspace }}\conan_meson_native.ini" -replace "\\", "\\"
         echo "MESON_NATIVE_FILE=$meson_native_file" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
-        # %ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe
-        vswhere -latest -products * -property installationPath
-
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.21.3
       env:
         # Additional args to pip
         # CIBW_BUILD_FRONTEND: "pip; args: -v"
-        # CIBW_BEFORE_BUILD_WINDOWS: vcvarsall x64
+        # CIBW_BEFORE_BUILD_WINDOWS: tools\enter-vsdevshell.ps1
+        CIBW_BEFORE_ALL_WINDOWS: .\tools\enter-vsdevshell.ps1
         CIBW_CONFIG_SETTINGS: setup-args=--native-file=${{ env.MESON_NATIVE_FILE }}
 
       with:
