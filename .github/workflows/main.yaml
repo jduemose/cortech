@@ -55,6 +55,10 @@ jobs:
         $meson_native_file = "${{ github.workspace }}\conan_meson_native.ini" -replace "\\", "\\"
         echo "MESON_NATIVE_FILE=$meson_native_file" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
+        choco install pkgconfiglite -y
+
+      # Set persistent environment variables from vcvarsall. The tools
+      # "enter-vsdevshell" in tools/ does the same but in the current shell
     - uses: ilammy/msvc-dev-cmd@v1
       if: runner.os == 'Windows'
 
