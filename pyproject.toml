@@ -55,8 +55,7 @@ skip = ["*musllinux*"]
 [tool.cibuildwheel.windows]
 # cibuildwheel does not yet include delvewheel by default and thus does not
 # repair wheels on windows. Therefore, add this
-before-all = ".\\tools\\enter-vsdevshell.bat && pip install conan && conan profile detect && conan install --build=missing --output-folder={package} ."
-before-build = "pip install delvewheel"
+before-build = "{package}\\tools\\enter-vsdevshell.bat && pip install delvewheel"
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 # [project.optional-dependencies]
