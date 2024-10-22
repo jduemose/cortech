@@ -61,7 +61,7 @@ jobs:
         # Additional args to pip
         # CIBW_BUILD_FRONTEND: "pip; args: -v"
         # CIBW_BEFORE_BUILD_WINDOWS: tools\enter-vsdevshell.ps1
-        CIBW_BEFORE_ALL_WINDOWS: "dir env: && tools\\enter-vsdevshell.ps1"
+        CIBW_BEFORE_ALL_WINDOWS: ".\tools\enter-vsdevshell.bat"
         CIBW_CONFIG_SETTINGS: setup-args=--native-file=${{ env.MESON_NATIVE_FILE }}
 
       with:
