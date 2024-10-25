@@ -3,6 +3,7 @@ python_sources = [
     'constants.py',
     'cortex.py',
     'freesurfer.py',
+    'sphere.py',
     'surface.py',
     'utils.py',
     'visualization.py',

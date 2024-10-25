@@ -20,6 +20,7 @@ class Surface:
     def __init__(
         self, vertices: npt.NDArray, faces: npt.NDArray, metadata=None
     ) -> None:
+        """Class for representing a triangulated surface."""
         self.vertices = vertices
         self.faces = faces
         self.metadata = metadata
@@ -46,7 +47,7 @@ class Surface:
 
     @vertices.setter
     def vertices(self, value):
-        value = np.atleast_2d(value)
+        value = np.atleast_2d(value).astype(float)
         assert value.ndim == 2
         self._vertices = value
         self.n_vertices, self.n_dim = value.shape
@@ -54,7 +55,7 @@ class Surface:
     def as_mesh(self):
         return self.vertices[self.faces]
 
-    def compute_vertex_adjacency(self, with_diag=False):
+    def compute_vertex_adjacency(self, include_self: bool = False):
         """Make sparse adjacency matrix for vertices with connections `tris`."""
         pairs = list(itertools.combinations(np.arange(self.faces.shape[1]), 2))
         row_ind = np.concatenate([self.faces[:, i] for p in pairs for i in p])
@@ -65,7 +66,7 @@ class Surface:
             (data / 2, (row_ind, col_ind)), shape=(self.n_vertices, self.n_vertices)
         )
 
-        if with_diag:
+        if include_self:
             A = A.tolil()
             A.setdiag(1)
             A = A.tocsr()
@@ -73,6 +74,9 @@ class Surface:
         A.sum_duplicates() # ensure canocical format
 
         return A
+
+    def compute_face_barycenters(self):
+        return self.as_mesh().mean(1)
 
     def compute_face_normals(self):
         """Get normal vectors for each triangle in the mesh.
@@ -488,15 +492,6 @@ class Surface:
             arr = self._gaussian_smooth_step(arr, a, A, nn, out)
         return arr
 
-    def _prepare_for_smooth(self, arr, inplace):
-        arr = arr if arr is not None else self.vertices
-        out = arr if inplace else None
-
-        A = self.compute_vertex_adjacency()
-        nn = A.sum(0)[:, None]  # A is symmetric
-
-        return arr, A, nn, out
-
     def _gaussian_smooth_step(self, x, a, A, nn, out=None):
         """Perform the following update
 
@@ -510,6 +505,15 @@ class Surface:
         else:
             out += a * (A @ x / nn - x)
             return out
+
+    def _prepare_for_smooth(self, arr, inplace):
+        arr = arr if arr is not None else self.vertices
+        out = arr if inplace else None
+
+        A = self.compute_vertex_adjacency()
+        nn = A.sum(0)[:, None]  # A is symmetric
+
+        return arr, A, nn, out
 
     def get_triangle_neighbors(self):
         """For each point get its neighboring triangles (i.e., the triangles to
@@ -913,8 +917,4 @@ class SphericalRegistration(Surface):
         self._mapping_matrix.sum_duplicates()
 
     def resample(self, values: npt.NDArray):
-        if not hasattr(self, "_mapping_matrix"):
-            raise RuntimeError(
-                "Please compute the mapping matrix (using the `fit_to` method) first."
-            )
         return self._mapping_matrix @ values

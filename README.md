@@ -14,3 +14,15 @@ This will generate pkg files for Boost, CGAL, Eigen, and TBB (TBB already exists
 Next, for an editable (developer) installation, use
 
     pip install --no-build-isolation --no-deps -e .
+
+## Installation (with conan)
+
+First
+
+    pip install conan
+    conan profile detect
+    conan install --build=missing --output-folder=$PWD/conan_deps .
+
+Then
+
+    pip install --no-build-isolation --no-deps --config-settings=setup-args=--native-file=$PWD/conan_deps/conan_meson_native.ini -e .
