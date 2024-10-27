@@ -52,11 +52,12 @@ def normalize(arr: npt.NDArray, axis=None, inplace: bool = False):
         return np.divide(arr, size, where=size != 0)
 
 
-def compute_sphere_radius(frac, T, R, R3=None):
+def compute_sphere_radius(frac: float | npt.NDArray, T: npt.NDArray, R: npt.NDArray, R3: None | npt.NDArray = None):
     # if `frac` is an array (and not a float) broadcast against vertices
-    frac = frac[:, None] if isinstance(frac, np.ndarray) else frac
+    frac_nd = np.array(frac).squeeze()
+    frac_nd = frac_nd if frac_nd.ndim == 0 else frac_nd[:, None]
     R3 = R**3 if R3 is None else R3
-    return np.cbrt(frac * ((R + T) ** 3 - R3) + R3)
+    return np.cbrt(frac_nd * ((R + T) ** 3 - R3) + R3)
 
 
 def compute_tangent_vectors(vectors: npt.NDArray) -> npt.NDArray:
@@ -87,7 +88,7 @@ def compute_tangent_vectors(vectors: npt.NDArray) -> npt.NDArray:
 
 def k_ring_neighbors(
     k: int,
-    indices: None | npt.NDArray[int],
+    indices: npt.NDArray[int],
     n: int,
     conn_indices: npt.NDArray,
     conn_indptr: npt.NDArray,

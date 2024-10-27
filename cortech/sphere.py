@@ -2,22 +2,35 @@ import numpy as np
 
 from cortech.cgal.convex_hull_3 import convex_hull
 
-def fibonacci_points(n_points: int):
+def fibonacci_points(n_points: int, radius: float = 1.0):
     """
-    http://extremelearning.com.au/evenly-distributing-points-on-a-sphere/
 
-    see fig. 1 for choice of 'best' epsilon (maximizer of minimum distance)
+
+    Parameters
+    ----------
+    n_points: int
+    radius: float
+
+    Returns
+    -------
+    vertices: ndarray
+    faces : ndarray
+
+    References
+    ----------
+    http://extremelearning.com.au/evenly-distributing-points-on-a-sphere/
+        See fig. 1 for choice of 'best' epsilon (maximizer of minimum distance)
 
     """
 
     if n_points < 30:
-        epsilon = 0.
+        epsilon = 0.0
     elif n_points < 150:
-        epsilon = 2.
+        epsilon = 2.0
     else:
         epsilon = 2.5
 
-    phi = 0.5 * (1 + np.sqrt(5)) # the golden ratio
+    phi = 0.5 * (1.0 + np.sqrt(5.0)) # the golden ratio
     i = np.arange(0, n_points, dtype=float)
 
     # Fibonacci grid
@@ -40,14 +53,21 @@ def fibonacci_points(n_points: int):
     y3 = np.sin(theta) * np.sin(phi)
     z3 = np.cos(phi)
 
-    return np.array([x3,y3,z3]).T
+    return radius * np.array([x3,y3,z3]).T
 
 def fibonacci_sphere(n_points: int, radius: float = 1.0):
     """Generates a triangulated sphere with N vertices and radius r centered on
     (0,0,0).
+
+    Parameters
+    ----------
+    n_points: int
+    radius: float
+
+    Returns
+    -------
+    vertices: ndarray
+    faces : ndarray
     """
-    pts = fibonacci_points(n_points) * radius
-    v, f = convex_hull(pts)
-    # v, f = hull.points, hull.simplices
-    # orientation_consistency(pts, tri)
-    return v, f
+    pts = fibonacci_points(n_points, radius)
+    return convex_hull(pts)
