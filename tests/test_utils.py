@@ -67,12 +67,11 @@ def test_compute_tangent_vectors():
 
 
 @pytest.mark.parametrize("k", [1, 2])
-def test_k_ring_neighbors_single(k, diamond, diamond_adjacency_matrix):
+def test_k_ring_neighbors_single(k, diamond_vertices, diamond_adjacency_matrix):
     """Find vertices that are neighbors of a single vertex."""
-    v, _ = diamond
     indices = np.array([[0]])
     A = sp.csr_array(diamond_adjacency_matrix)
-    knn, kr = cortech.utils.k_ring_neighbors(k, indices, len(v), A.indices, A.indptr)
+    knn, kr = cortech.utils.k_ring_neighbors(k, indices, len(diamond_vertices), A.indices, A.indptr)
 
     match k:
         case 1:
@@ -83,12 +82,11 @@ def test_k_ring_neighbors_single(k, diamond, diamond_adjacency_matrix):
             np.testing.assert_allclose(kr, [[0, 1, 5, 6]])
 
 @pytest.mark.parametrize("k", [1, 2])
-def test_k_ring_neighbors_two_separate(k, diamond, diamond_adjacency_matrix):
+def test_k_ring_neighbors_two_separate(k, diamond_vertices, diamond_adjacency_matrix):
     """Find vertices that are neighbors of each vertex separately."""
-    v, _ = diamond
     indices = np.array([[0],[3]])
     A = sp.csr_array(diamond_adjacency_matrix)
-    knn, kr = cortech.utils.k_ring_neighbors(k, indices, len(v), A.indices, A.indptr)
+    knn, kr = cortech.utils.k_ring_neighbors(k, indices, len(diamond_vertices), A.indices, A.indptr)
 
     match k:
         case 1:
@@ -99,13 +97,12 @@ def test_k_ring_neighbors_two_separate(k, diamond, diamond_adjacency_matrix):
             np.testing.assert_allclose(kr, [[0, 1, 5, 6],[ 0, 1, 5, 6]])
 
 
-def test_k_ring_neighbors_two_simultaneous(diamond, diamond_adjacency_matrix):
+def test_k_ring_neighbors_two_simultaneous(diamond_vertices, diamond_adjacency_matrix):
     """Find vertices that are neighbors of either of two vertices."""
-    v, _ = diamond
     k = 1
     indices = np.array([[0,3]])
     A = sp.csr_array(diamond_adjacency_matrix)
-    knn, kr = cortech.utils.k_ring_neighbors(k, indices, len(v), A.indices, A.indptr)
+    knn, kr = cortech.utils.k_ring_neighbors(k, indices, len(diamond_vertices), A.indices, A.indptr)
 
     np.testing.assert_allclose(knn, [[0, 3, 1, 2, 4, 5]])
     np.testing.assert_allclose(kr, [[0, 2, 6]])

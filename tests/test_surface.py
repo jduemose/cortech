@@ -9,12 +9,19 @@ import cortech.utils
 
 
 @pytest.fixture
-def diamond(diamond):
-    return Surface(*diamond)
+def diamond(diamond_vertices, diamond_faces):
+    return Surface(diamond_vertices, diamond_faces)
 
 @pytest.fixture
-def sphere_surface(sphere):
-    return Surface(*sphere)
+def diamond_intersect(diamond, diamond_barycenters):
+    # Create face intersections by moving vertex 0 through the plane of face 4
+    diamond_intersect = copy.deepcopy(diamond)
+    diamond_intersect.vertices[0] = diamond_barycenters[4] * 1.1
+    return diamond_intersect
+
+@pytest.fixture
+def sphere(sphere_tuple):
+    return Surface(*sphere_tuple)
 
 
 def sph_to_cart(theta, phi):
@@ -30,10 +37,10 @@ def sph_to_cart(theta, phi):
 
 
 class TestSurface:
-    def test_create_surface(self, sphere):
-        s = Surface(*sphere)
-        np.testing.assert_allclose(s.vertices, sphere[0])
-        np.testing.assert_allclose(s.faces, sphere[1])
+    def test_create_surface(self, sphere_tuple):
+        s = Surface(*sphere_tuple)
+        np.testing.assert_allclose(s.vertices, sphere_tuple[0])
+        np.testing.assert_allclose(s.faces, sphere_tuple[1])
 
     @pytest.mark.parametrize("include_self", [False, True])
     def test_compute_vertex_adjacency(self, include_self, diamond, diamond_adjacency_matrix):
@@ -119,26 +126,36 @@ class TestSurface:
     #     n = s.k_ring_neighbors(2, 0)
 
 
-    def test_remove_self_intersections(self):
-        pass
+    def test_remove_self_intersections(self, diamond_intersect):
+        """Basic check that *something* sensible is being done."""
+        assert len(diamond_intersect.self_intersections()) > 0
+        diamond_clean = diamond_intersect.remove_self_intersections()
+        assert len(diamond_clean.self_intersections()) == 0
 
-    def test_self_intersections(self):
-        pass
+    def test_self_intersections(self, diamond_intersect):
+        sif = diamond_intersect.self_intersections()
+        np.testing.assert_allclose(sif, [[3,4], [1,4], [2,4]])
 
+    def test_connected_components(self, diamond):
+        cc_label, cc_size = diamond.connected_components()
+        np.testing.assert_allclose(cc_label, 0)
+        np.testing.assert_allclose(cc_size, diamond.n_faces)
 
-    def test_connected_components(self):
-        pass
-
-
+    def test_connected_components_constrained(self, diamond):
+        cc_label, cc_size = diamond.connected_components([0,1,2,3])
+        n = diamond.n_faces // 2
+        np.testing.assert_allclose(cc_label, np.concatenate((np.full(n, 0), np.full(n, 1))))
+        np.testing.assert_allclose(cc_size, [n,n])
 
     def test_points_inside_surface(self, diamond, diamond_barycenters, eps=1e-6):
-        # Move outwards
-        is_inside = diamond.points_inside_surface(diamond_barycenters * (1+eps))
-        np.testing.assert_allclose(is_inside, False)
-        # Move inwards
+        # Move points inwards
         is_inside = diamond.points_inside_surface(diamond_barycenters * (1-eps))
         np.testing.assert_allclose(is_inside, True)
 
+    def test_points_outside_surface(self, diamond, diamond_barycenters, eps=1e-6):
+        # Move points outwards
+        is_inside = diamond.points_inside_surface(diamond_barycenters * (1+eps))
+        np.testing.assert_allclose(is_inside, False)
 
 
     def test_shape_smooth(self):
