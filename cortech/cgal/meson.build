@@ -21,6 +21,15 @@ cgal_helpers_dep = declare_dependency(
 )
 
 pmp = python.extension_module(
+    'aabb_tree',
+    cython_gen_cpp.process('aabb_tree.pyx'),
+    cpp_args: [cython_cpp_args, cpp_cgal_args, cpp_cgal_macros],
+    dependencies: [numpy_dep, cgal_dep, cgal_helpers_dep],
+    install: true,
+    subdir: cgal_dir,
+)
+
+pmp = python.extension_module(
     'polygon_mesh_processing',
     cython_gen_cpp.process('polygon_mesh_processing.pyx'),
     cpp_args: [cython_cpp_args, cpp_cgal_args, cpp_cgal_macros],

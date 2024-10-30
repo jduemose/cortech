@@ -5,8 +5,9 @@ import nibabel as nib
 import numpy as np
 import numpy.typing as npt
 import pyvista as pv
-import scipy.sparse
 from scipy.ndimage import map_coordinates
+import scipy.sparse
+from scipy.spatial import cKDTree
 
 import cortech.freesurfer
 import cortech.utils
@@ -410,6 +411,39 @@ class Surface:
             vol, vox_coords.T, order=order, mode="constant", cval=0.0, prefilter=True
         )
 
+    def distance_query(self, query_points: npt.NDArray, accelerate: bool | str = "barycenter"):
+        """Query the distance between `query_points` and the surface.
+
+        Parameters
+        ----------
+        query_points:
+            The points to query distances for.
+        accelerate:
+            If True, use the default acceleration in CGAL's AABB tree package
+            (provided by `accelerate_distance_queries`). If False, explicitly
+            set `do_not_accelerate_distance_queries`. It seems that the
+            acceleration is unstable when many (e.g., >150K) primitive (faces)
+            are used for the AABB tree construction. Therefore, using
+            `barycenter` will calculate the closest barycenter on the surface
+            to each query point and use this as the "query hint". This seems to
+            work well so we set this as the default.
+        """
+        assert isinstance(accelerate, bool) or accelerate in {"barycenter", }
+        if accelerate == "barycenter":
+            barycenters = self.compute_face_barycenters()
+            tree = cKDTree(barycenters)
+            _,index = tree.query(query_points)
+            query_hints = barycenters[index]
+        else:
+            query_hints = None
+
+        return cortech.cgal.aabb_tree.distance(
+            self.vertices, self.faces,query_points,query_hints,accelerate
+        )
+
+    def distance(self, other: "Surface", accelerate: bool | str = "barycenter"):
+        return self.distance(other.vertices, accelerate)
+
     def convex_hull(self):
         v, f = cortech.cgal.convex_hull_3.convex_hull(self.vertices)
         return Surface(v, f, metadata=self.metadata)
@@ -800,6 +834,11 @@ class Surface:
 
         self.vertices = self.vertices[vertices_used]
         self.faces = reindexer[self.faces]
+
+    # def join(self, other):
+    #     # Update faces first!
+    #     self.faces = np.concatenate((self.faces, other.faces + self.n_vertices))
+    #     self.vertices = np.concatenate((self.vertices, other.vertices))
 
     def plot(self, scalars=None, mesh_kwargs=None, plotter_kwargs=None):
         plot_surface(

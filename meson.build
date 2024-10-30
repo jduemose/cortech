@@ -93,7 +93,7 @@ incdir_numpy = run_command(
 numpy_include = include_directories(incdir_numpy)
 
 numpy_dep = declare_dependency(include_directories: numpy_include)
-cgal_dep = dependency('cgal', version: '>= 5.6')
+cgal_dep = dependency('cgal', version: '>= 5.5')
 
 # files = ['3RD-PARTY.md', 'LICENSE.txt', 'README.md']
 # install_data(files, install_dir: simnibs_install_dir / 'simnibs')
