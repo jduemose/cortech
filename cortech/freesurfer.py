@@ -6,7 +6,7 @@ if "FREESURFER_HOME" in os.environ:
     HOME = Path(os.environ["FREESURFER_HOME"])
 else:
     HAS_FREESURFER = False
-    HOME = None
+    HOME = Path()
 
 HEMISPHERES = {"lh", "rh"}
 MORPH_DATA = {"area", "curv", "sulc", "thickness"}

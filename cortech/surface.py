@@ -432,17 +432,17 @@ class Surface:
         if accelerate == "barycenter":
             barycenters = self.compute_face_barycenters()
             tree = cKDTree(barycenters)
-            _,index = tree.query(query_points)
+            _, index = tree.query(query_points)
             query_hints = barycenters[index]
         else:
             query_hints = None
 
         return cortech.cgal.aabb_tree.distance(
-            self.vertices, self.faces,query_points,query_hints,accelerate
+            self.vertices, self.faces, query_points, query_hints, accelerate
         )
 
     def distance(self, other: "Surface", accelerate: bool | str = "barycenter"):
-        return self.distance(other.vertices, accelerate)
+        return self.distance_query(other.vertices, accelerate)
 
     def convex_hull(self):
         v, f = cortech.cgal.convex_hull_3.convex_hull(self.vertices)
